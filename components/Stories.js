@@ -11,7 +11,7 @@ function Stories() {
     setSuggestionsData(suggestions);
   }, []);
   return (
-    <div className="flex space-x-4 p-6 bg-white mt-3 ml-24 md:mt-5  border-gray-200 border rounded-sm overflow-x-scroll scrollbar-hide">
+    <div className="flex space-x-4 p-6 bg-white mt-3 md:ml-6 md:mr-5 lg:ml-24 md:mt-5  border-gray-200 border rounded-sm overflow-x-scroll scrollbar-hide">
       {suggestionsData.map((profile) => (
         <Story
           key={profile.id}
