@@ -41,7 +41,6 @@ function Modal() {
       timestamp: serverTimestamp(),
     });
 
-    console.log("new Doc added with id ", docRef.id);
     const imageRef = ref(storage, `posts/${docRef.id}/image`);
     await uploadString(imageRef, selectedFile, "data_url").then(
       async (snapshot) => {
@@ -53,7 +52,7 @@ function Modal() {
     );
     setOpen(false);
     setLoading(false);
-    setselectedFile(null);
+    setSelectedFile(null);
   };
   return (
     <Transition.Root show={open} as={Fragment}>
@@ -66,13 +65,13 @@ function Modal() {
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-300"
-            enterForm="opactiy-0"
+            enterFrom="opacity-0"
             enterTo="opacity-100"
             leave="ease-in duration-200"
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <Dialog.Overlay className="fixed inset-0 bg-gray-500 bg-opactiy-75 transition-opacity" />
+            <Dialog.Overlay className="fixed inset-0 bg-gray-100 bg-opacity-75 transition-opacity" />
           </Transition.Child>
           <span
             className="hidden sm:inline-block sm:align-middle sm:h-screen"
@@ -84,7 +83,7 @@ function Modal() {
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-300"
-            enterForm="opactiy-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             enterTo="opacity-100 translate-y-0 sm:scale-100"
             leave="ease-in duration-200"
             leaveFrom="opacity-100 translate-y-0 sm:scale-100"

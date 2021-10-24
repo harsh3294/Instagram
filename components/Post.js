@@ -1,4 +1,15 @@
 import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+} from "@firebase/firestore";
+import {
   BookmarkIcon,
   ChatIcon,
   DotsHorizontalIcon,
@@ -7,7 +18,66 @@ import {
   PaperAirplaneIcon,
 } from "@heroicons/react/outline";
 import { HeartIcon as HeartIconFilled } from "@heroicons/react/solid";
+import { useSession } from "next-auth/react";
+import Moment from "react-moment";
+import "moment-timezone";
+import { useEffect, useState } from "react";
+import { db } from "../firebase";
 function Post({ id, username, image, userImg, caption }) {
+  const { data: session } = useSession();
+  const [comment, setComment] = useState("");
+  const [comments, setComments] = useState([]);
+  const [likes, setLikes] = useState([]);
+  const [hasLiked, setHasLiked] = useState(false);
+  const sentComment = async (e) => {
+    e.preventDefault();
+    const commentToSend = comment;
+
+    setComment("");
+
+    await addDoc(collection(db, "posts", id, "comments"), {
+      comment: commentToSend,
+      username: session.user.username,
+      userImage: session.user.image,
+      timestamp: serverTimestamp(),
+    });
+  };
+
+  const likePost = async () => {
+    if (hasLiked) {
+      await deleteDoc(doc(db, "posts", id, "likes", session.user.uid));
+    } else {
+      await setDoc(doc(db, "posts", id, "likes", session.user.uid), {
+        username: session.user.username,
+      });
+    }
+  };
+  useEffect(() => {
+    setHasLiked(
+      likes.findIndex((like) => like.id === session?.user?.uid) !== -1
+    );
+  }, [likes]);
+
+  useEffect(
+    () =>
+      onSnapshot(query(collection(db, "posts", id, "likes")), (snapshot) => {
+        setLikes(snapshot.docs);
+      }),
+    [db, id]
+  );
+  useEffect(
+    () =>
+      onSnapshot(
+        query(
+          collection(db, "posts", id, "comments"),
+          orderBy("timestamp", "desc")
+        ),
+        (snapshot) => {
+          setComments(snapshot.docs);
+        }
+      ),
+    [db, id]
+  );
   return (
     <div key={id} className="bg-white my-7 border rounded-sm">
       <div className="flex items-center p-5 ">
@@ -20,31 +90,79 @@ function Post({ id, username, image, userImg, caption }) {
         <DotsHorizontalIcon className="h-5" />
       </div>
       <img src={image} className="object-cover w-full" alt="" />
-      <div className="flex justify-between px-4 py-4">
-        <div className="flex space-x-4 ">
-          <HeartIcon className="btn" />
-          <ChatIcon className="btn" />
-          <PaperAirplaneIcon className="btn rotate-45" />
+      {session && (
+        <div className="flex justify-between px-4 py-4">
+          <div className="flex space-x-4 ">
+            {hasLiked ? (
+              <HeartIconFilled
+                onClick={likePost}
+                className="btn text-red-500"
+              />
+            ) : (
+              <HeartIcon onClick={likePost} className="btn" />
+            )}
+
+            <ChatIcon className="btn" />
+            <PaperAirplaneIcon className="btn rotate-45" />
+          </div>
+          <BookmarkIcon className="btn" />
         </div>
-        <BookmarkIcon className="btn" />
-      </div>
+      )}
 
       <p className="py-2 px-5 truncate">
+        {likes.length > 0 ? (
+          <p className="font-bold mb-1">{likes.length} likes</p>
+        ) : (
+          <p className="font-semibold mb-1">Be the first to like the post</p>
+        )}
         <span className="font-bold mr-1">{username} </span>
         {caption}
       </p>
 
-      <form className="flex items-center p-2">
-        <EmojiHappyIcon className="h-7 text-gray-500" />
-        <input
-          type="text"
-          className="border-none flex-1 focus:ring-0"
-          placeholder="Add a comment ..."
-        />
-        <button className="font-semibold text-gray-500">
-          <PaperAirplaneIcon className="btn rotate-45 mr-1" />
-        </button>
-      </form>
+      {comments.length > 0 && (
+        <div className="ml-10 h-20 overflow-y-scroll scrollbar-hide">
+          {comments.map((commentdata) => (
+            <div
+              key={commentdata.id}
+              className="flex items-center space-x-2 mb-3"
+            >
+              <img
+                src={commentdata.data().userImage}
+                alt=""
+                className="h-7 rounded-full"
+              />
+              <p className="text-sm flex-1">
+                <span className="font-bold">{commentdata.data().username}</span>
+                {"  "}
+                {commentdata.data().comment}
+              </p>
+              <Moment interval={1000} fromNow ago className="pr-5 text-xs">
+                {commentdata.data().timestamp?.toDate()}
+              </Moment>
+            </div>
+          ))}
+        </div>
+      )}
+      {session && (
+        <form className="flex items-center p-2">
+          <EmojiHappyIcon className="h-7 text-gray-500" />
+          <input
+            type="text"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            className="border-none flex-1 focus:ring-0"
+            placeholder="Add a comment ..."
+          />
+          <button
+            type="submit"
+            disabled={!comment.trim()}
+            onClick={sentComment}
+            className="font-semibold  text-gray-500"
+          >
+            <PaperAirplaneIcon className="btn rotate-45 mr-1" />
+          </button>
+        </form>
+      )}
     </div>
   );
 }
